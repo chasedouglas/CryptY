@@ -54,7 +54,7 @@ function email_obfuscator_settings_init()
 
 function email_obfuscator_settings_section_callback()
 {
-    echo 'Customize the Email Obfuscator settings below.';
+    echo 'You can turn the Obfuscator on or off below. More features are coming soon!';
 }
 
 function email_obfuscator_setting_enable_render()
