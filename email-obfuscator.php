@@ -72,3 +72,17 @@ function email_obfuscator_init()
     }
 }
 add_action('init', 'email_obfuscator_init');
+
+// Function to add a settings link
+function email_obfuscator_add_settings_link($links)
+{
+    $settings_link = '<a href="options-general.php?page=email_obfuscator">' . __('Settings') . '</a>';
+    array_push($links, $settings_link);
+    return $links;
+}
+
+// Dynamically generate the correct hook for your plugin
+$plugin = plugin_basename(__FILE__);
+
+// Add the filter to the plugin action links
+add_filter("plugin_action_links_$plugin", 'email_obfuscator_add_settings_link');
