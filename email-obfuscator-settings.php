@@ -1,10 +1,4 @@
 <?php
-/*
-Plugin Name: Email Obfuscator Settings 
-Description: Simple settings panel do enable or disable the code from running. More features coming soon.
-Version: 1.0
-Author: Chase Douglas
-*/
 
 // Hook into the admin menu to add the settings page
 add_action('admin_menu', 'email_obfuscator_add_admin_menu');
