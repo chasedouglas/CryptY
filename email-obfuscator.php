@@ -36,7 +36,7 @@ function obfuscate_emails($content)
     @$dom->loadHTML(mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8'), LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
     $xpath = new DOMXPath($dom);
 
-    // Obfuscate emails within <a> tags
+    // Process links with mailto: href
     $links = $xpath->query('//a[contains(@href, "mailto:")]');
     foreach ($links as $link) {
         $href = $link->getAttribute('href');
@@ -48,16 +48,22 @@ function obfuscate_emails($content)
         }
     }
 
-    // Additional logic to find and obfuscate unlinked emails if the setting is enabled
+    // Additional logic to obfuscate unlinked emails, avoiding text within <a> tags
     if (!empty($options['option_find_non_mailto'])) {
-        $textNodes = $xpath->query('//text()');
+        // Targeting only text nodes not directly inside <a> tags
+        $textNodes = $xpath->query('//text()[not(parent::a)]');
         foreach ($textNodes as $textNode) {
             if (preg_match_all('/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/', $textNode->nodeValue, $emails)) {
+                $newContent = $textNode->nodeValue;
                 foreach ($emails[0] as $email) {
                     $obfuscatedEmailLink = generate_mailto_link($email);
-                    $newNode = $dom->createDocumentFragment();
-                    $replacementHtml = preg_replace('/' . preg_quote($email, '/') . '/', $obfuscatedEmailLink, $textNode->nodeValue);
-                    $newNode->appendXML($replacementHtml);
+                    // Replace the plain text email with the obfuscated link
+                    $newContent = str_replace($email, $obfuscatedEmailLink, $newContent);
+                }
+                $newNode = $dom->createDocumentFragment();
+                // Use htmlspecialchars to avoid breaking HTML entities
+                $newNode->appendXML('<![CDATA[' . htmlspecialchars($newContent) . ']]>');
+                if ($newNode->hasChildNodes()) {
                     $textNode->parentNode->replaceChild($newNode, $textNode);
                 }
             }
@@ -66,6 +72,7 @@ function obfuscate_emails($content)
 
     return $dom->saveHTML();
 }
+
 add_filter('the_content', 'obfuscate_emails');
 
 function email_obfuscator_enqueue_scripts()
