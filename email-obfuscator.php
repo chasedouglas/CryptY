@@ -86,3 +86,16 @@ $plugin = plugin_basename(__FILE__);
 
 // Add the filter to the plugin action links
 add_filter("plugin_action_links_$plugin", 'email_obfuscator_add_settings_link');
+
+// adding default parameters to make sure the plugin is working when it is activated
+function email_obfuscator_activate()
+{
+    $default_options = array(
+        'email_obfuscator_setting_enable' => 1 // Ensure the default is checked
+    );
+    // Only set the default if the option doesn't exist
+    if (false === get_option('email_obfuscator_options')) {
+        add_option('email_obfuscator_options', $default_options);
+    }
+}
+register_activation_hook(__FILE__, 'email_obfuscator_activate');
