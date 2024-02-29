@@ -27,7 +27,7 @@ function email_obfuscator_settings_page()
             ?>
         </form>
     </div>
-<?php
+    <?php
 }
 
 // Initialize settings
@@ -50,6 +50,23 @@ function email_obfuscator_settings_init()
         'email_obfuscator',
         'email_obfuscator_settings_section'
     );
+    add_additional_settings_field(
+        'email_obfuscator_wrap_unlinked_emails', // ID
+        'Wrap and Obfuscate Unlinked Emails', // Title
+        'email_obfuscator_wrap_unlinked_emails_render', // Callback function to render the checkbox
+        'email_obfuscator', // Page
+        'email_obfuscator_settings_section' // Section
+    );
+
+    // Define the callback function to render the checkbox
+    function email_obfuscator_wrap_unlinked_emails_render()
+    {
+        $options = get_option('email_obfuscator_options');
+    ?>
+        <input type='checkbox' name='email_obfuscator_options[email_obfuscator_wrap_unlinked_emails]' <?php checked(isset($options['email_obfuscator_wrap_unlinked_emails']), 1); ?> value='1'>
+        <label for='email_obfuscator_options[email_obfuscator_wrap_unlinked_emails]'>Enable to automatically wrap and obfuscate unlinked email addresses found in your content.</label>
+    <?php
+    }
 }
 
 function email_obfuscator_settings_section_callback()
@@ -60,12 +77,12 @@ function email_obfuscator_settings_section_callback()
 function email_obfuscator_setting_enable_render()
 {
     $options = get_option('email_obfuscator_options');
-?>
+    ?>
     <input type='checkbox' name='email_obfuscator_options[email_obfuscator_setting_enable]' <?php checked(isset($options['email_obfuscator_setting_enable']), 1); ?> value='1'>
 <?php
 }
 
-// Sanitize and validate input
+
 function email_obfuscator_options_sanitize($options)
 {
     if (!is_array($options)) {
