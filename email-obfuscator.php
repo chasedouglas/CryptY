@@ -12,83 +12,90 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 include_once(plugin_dir_path(__FILE__) . 'email-obfuscator-settings.php');
 
-function encrypt_email($email)
-{
-    return base64_encode($email);
-}
 
-function generate_decrypt_script($encrypted_email)
+function email_obfuscator_init()
 {
-    return 'DeCryptX(\'' . $encrypted_email . '\')';
-}
+    $option_on_off = get_option('email_obfuscator_options');
+    $option_find_non_mailto = get_option('option_find_non_mailto');
 
-function generate_mailto_link($email)
-{
-    $encrypted_email = encrypt_email($email);
-    $javascript_code = generate_decrypt_script($encrypted_email);
-    return '<a href="javascript:' . htmlspecialchars($javascript_code) . '">' . htmlspecialchars($email) . '</a>';
-}
-
-function obfuscate_emails($content)
-{
-    $options = get_option('email_obfuscator_options');
-    $dom = new DOMDocument();
-    @$dom->loadHTML(mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8'), LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
-    $xpath = new DOMXPath($dom);
-
-    // Obfuscate emails within <a> tags
-    $links = $xpath->query('//a[contains(@href, "mailto:")]');
-    foreach ($links as $link) {
-        $href = $link->getAttribute('href');
-        if (strpos($href, 'mailto:') === 0) {
-            $email = substr($href, 7); // Remove the 'mailto:' part
-            $encryptedEmail = encrypt_email($email);
-            $decryptedLink = generate_decrypt_script($encryptedEmail);
-            $link->setAttribute('href', 'javascript:' . $decryptedLink);
+    if (!empty($option_on_off['email_obfuscator_setting_enable'])) {
+        // Code to hide emails from bots
+        function encrypt_email($email)
+        {
+            return base64_encode($email);
         }
-    }
 
-    // Additional logic to find and obfuscate unlinked emails if the setting is enabled
-    if (!empty($options['option_find_non_mailto'])) {
-        $textNodes = $xpath->query('//text()');
-        foreach ($textNodes as $textNode) {
-            if (preg_match_all('/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/', $textNode->nodeValue, $emails)) {
-                foreach ($emails[0] as $email) {
-                    $obfuscatedEmailLink = generate_mailto_link($email);
-                    $newNode = $dom->createDocumentFragment();
-                    $replacementHtml = preg_replace('/' . preg_quote($email, '/') . '/', $obfuscatedEmailLink, $textNode->nodeValue);
-                    $newNode->appendXML($replacementHtml);
-                    $textNode->parentNode->replaceChild($newNode, $textNode);
+        function generate_decrypt_script($encrypted_email)
+        {
+            return 'DeCryptX(\'' . $encrypted_email . '\')';
+        }
+
+        function generate_mailto_link($email)
+        {
+            $encrypted_email = encrypt_email($email);
+            $javascript_code = generate_decrypt_script($encrypted_email);
+            // Ensure only the JavaScript call is being used, without additional HTML nesting
+            return '<a href="javascript:' . htmlspecialchars($javascript_code) . '">' . htmlspecialchars($email) . '</a>';
+        }
+
+        function obfuscate_emails($content)
+        {
+            // Create a new DOMDocument and load the content
+            $dom = new DOMDocument();
+            @$dom->loadHTML(mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8'), LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+            $links = $dom->getElementsByTagName('a');
+
+            foreach ($links as $link) {
+                // Check if the link is a mailto link
+                $href = $link->getAttribute('href');
+                if (strpos($href, 'mailto:') === 0) {
+                    $email = substr($href, 7); // Remove the 'mailto:' part
+                    $encryptedEmail = encrypt_email($email);
+                    $decryptedLink = generate_decrypt_script($encryptedEmail);
+
+                    // Set the new href to call the JavaScript decrypt function
+                    $link->setAttribute('href', 'javascript:' . $decryptedLink);
+                    // Optionally, set the display text to the encrypted email or leave it as is
+                    // $link->nodeValue = $encryptedEmail;
                 }
             }
+
+            // Save the modified content
+            return $dom->saveHTML();
         }
+        add_filter('the_content', 'obfuscate_emails');
+
+
+        function email_obfuscator_enqueue_scripts()
+        {
+            wp_enqueue_script('email-decrypt', plugin_dir_url(__FILE__) . 'js/decrypt.js', array(), '1.0', true);
+        }
+        add_action('wp_enqueue_scripts', 'email_obfuscator_enqueue_scripts');
     }
-
-    return $dom->saveHTML();
 }
-add_filter('the_content', 'obfuscate_emails');
+add_action('init', 'email_obfuscator_init');
 
-function email_obfuscator_enqueue_scripts()
-{
-    wp_enqueue_script('email-decrypt', plugin_dir_url(__FILE__) . 'js/decrypt.js', array(), '1.0', true);
-}
-add_action('wp_enqueue_scripts', 'email_obfuscator_enqueue_scripts');
-
+// Function to add a settings link
 function email_obfuscator_add_settings_link($links)
 {
-    $settings_link = '<a href="options-general.php?page=email_obfuscator">Settings</a>';
-    array_unshift($links, $settings_link);
+    $settings_link = '<a href="options-general.php?page=email_obfuscator">' . __('Settings') . '</a>';
+    array_push($links, $settings_link);
     return $links;
 }
+
+// Dynamically generate the correct hook for your plugin
 $plugin = plugin_basename(__FILE__);
+
+// Add the filter to the plugin action links
 add_filter("plugin_action_links_$plugin", 'email_obfuscator_add_settings_link');
 
+// adding default parameters to make sure the plugin is working when it is activated
 function email_obfuscator_activate()
 {
     $default_options = array(
-        'email_obfuscator_setting_enable' => 1, // Ensure the default is checked
-        'option_find_non_mailto' => 0, // New setting for wrapping unlinked emails
+        'email_obfuscator_setting_enable' => 1 // Ensure the default is checked
     );
+    // Only set the default if the option doesn't exist
     if (false === get_option('email_obfuscator_options')) {
         add_option('email_obfuscator_options', $default_options);
     }
