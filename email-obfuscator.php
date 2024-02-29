@@ -32,8 +32,9 @@ function generate_mailto_link($email)
 function obfuscate_emails($content)
 {
     $options = get_option('email_obfuscator_options');
+    libxml_use_internal_errors(true); // Suppress libXML errors
     $dom = new DOMDocument();
-    @$dom->loadHTML(mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8'), LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+    $dom->loadHTML(mb_convert_encoding($content, 'HTML-ENTITIES', 'UTF-8'), LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
     $xpath = new DOMXPath($dom);
 
     // Process links with mailto: href
@@ -50,23 +51,28 @@ function obfuscate_emails($content)
 
     // Additional logic to obfuscate unlinked emails, avoiding text within <a> tags
     if (!empty($options['option_find_non_mailto'])) {
-        $textNodes = $xpath->query('//body//text()[not(ancestor::a)]');
+        $textNodes = $xpath->query('//text()[not(ancestor::a)]');
         foreach ($textNodes as $textNode) {
-            if (preg_match_all('/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/', $textNode->nodeValue, $matches)) {
+            $nodeValue = $textNode->nodeValue;
+            if (preg_match_all('/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/', $nodeValue, $matches)) {
                 foreach ($matches[0] as $email) {
-                    $obfuscatedLink = generate_mailto_link($email);
-                    // Directly replace text node with new link HTML
-                    $replacedNodeValue = str_replace($email, $obfuscatedLink, $textNode->nodeValue);
-                    $fragment = $dom->createDocumentFragment();
-                    // IMPORTANT: Use fragment to insert raw HTML
-                    $fragment->appendXML($replacedNodeValue);
-                    // Replace the original text node with the new fragment
-                    $textNode->parentNode->replaceChild($fragment, $textNode);
-                    break; // Break after the first replacement to avoid duplicating nodes
+                    $obfuscatedLinkHTML = generate_mailto_link($email);
+                    $newHTML = str_replace($email, htmlspecialchars_decode($obfuscatedLinkHTML), $nodeValue);
+
+                    $newFragment = $dom->createDocumentFragment();
+                    $newFragment->appendXML('<!DOCTYPE html><html><body>' . $newHTML . '</body></html>');
+                    foreach ($newFragment->firstChild->firstChild->childNodes as $child) {
+                        $importedNode = $dom->importNode($child, true);
+                        $textNode->parentNode->insertBefore($importedNode, $textNode);
+                    }
+                    $textNode->parentNode->removeChild($textNode);
+                    break; // Ensure we only replace the first instance to prevent duplication
                 }
             }
         }
     }
+
+    libxml_clear_errors(); // Clear any libXML errors encountered
 
     return $dom->saveHTML();
 }
