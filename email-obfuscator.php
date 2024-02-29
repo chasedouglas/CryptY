@@ -50,21 +50,19 @@ function obfuscate_emails($content)
 
     // Additional logic to obfuscate unlinked emails, avoiding text within <a> tags
     if (!empty($options['option_find_non_mailto'])) {
-        // Targeting only text nodes not directly inside <a> tags
-        $textNodes = $xpath->query('//text()[not(parent::a)]');
+        $textNodes = $xpath->query('//body//text()[not(ancestor::a)]');
         foreach ($textNodes as $textNode) {
-            if (preg_match_all('/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/', $textNode->nodeValue, $emails)) {
-                $newContent = $textNode->nodeValue;
-                foreach ($emails[0] as $email) {
-                    $obfuscatedEmailLink = generate_mailto_link($email);
-                    // Replace the plain text email with the obfuscated link
-                    $newContent = str_replace($email, $obfuscatedEmailLink, $newContent);
-                }
-                $newNode = $dom->createDocumentFragment();
-                // Use htmlspecialchars to avoid breaking HTML entities
-                $newNode->appendXML('<![CDATA[' . htmlspecialchars($newContent) . ']]>');
-                if ($newNode->hasChildNodes()) {
-                    $textNode->parentNode->replaceChild($newNode, $textNode);
+            if (preg_match_all('/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/', $textNode->nodeValue, $matches)) {
+                foreach ($matches[0] as $email) {
+                    $obfuscatedLink = generate_mailto_link($email);
+                    // Directly replace text node with new link HTML
+                    $replacedNodeValue = str_replace($email, $obfuscatedLink, $textNode->nodeValue);
+                    $fragment = $dom->createDocumentFragment();
+                    // IMPORTANT: Use fragment to insert raw HTML
+                    $fragment->appendXML($replacedNodeValue);
+                    // Replace the original text node with the new fragment
+                    $textNode->parentNode->replaceChild($fragment, $textNode);
+                    break; // Break after the first replacement to avoid duplicating nodes
                 }
             }
         }
