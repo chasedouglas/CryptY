@@ -50,6 +50,15 @@ function email_obfuscator_settings_init()
         'email_obfuscator',
         'email_obfuscator_settings_section'
     );
+
+    // Add a new setting field for "option_find_non_mailto"
+    add_settings_field(
+        'option_find_non_mailto',
+        'Automatically link non-mailto emails',
+        'email_obfuscator_option_find_non_mailto_render',
+        'email_obfuscator',
+        'email_obfuscator_settings_section'
+    );
 }
 
 function email_obfuscator_settings_section_callback()
@@ -65,6 +74,15 @@ function email_obfuscator_setting_enable_render()
 <?php
 }
 
+// Render the new checkbox for "option_find_non_mailto"
+function email_obfuscator_option_find_non_mailto_render()
+{
+    $options = get_option('email_obfuscator_options');
+?>
+    <input type='checkbox' name='email_obfuscator_options[option_find_non_mailto]' <?php checked(isset($options['option_find_non_mailto']), 1); ?> value='1'>
+<?php
+}
+
 // Sanitize and validate input
 function email_obfuscator_options_sanitize($options)
 {
@@ -73,11 +91,16 @@ function email_obfuscator_options_sanitize($options)
     }
 
     if (isset($options['email_obfuscator_setting_enable'])) {
-        // Ensure the input is a boolean value
         $options['email_obfuscator_setting_enable'] = (bool)$options['email_obfuscator_setting_enable'];
     } else {
-        // Default to false if not set
         $options['email_obfuscator_setting_enable'] = false;
+    }
+
+    // Sanitize the new "option_find_non_mailto" setting
+    if (isset($options['option_find_non_mailto'])) {
+        $options['option_find_non_mailto'] = (bool)$options['option_find_non_mailto'];
+    } else {
+        $options['option_find_non_mailto'] = false;
     }
 
     return $options;
