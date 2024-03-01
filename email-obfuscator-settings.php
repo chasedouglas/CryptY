@@ -48,7 +48,7 @@ function email_obfuscator_settings_init()
     // Add a new setting field for "option_find_non_mailto"
     add_settings_field(
         'option_find_non_mailto',
-        'Automatically link non-mailto emails',
+        'Inlcude non-mailto links?',
         'email_obfuscator_option_find_non_mailto_render',
         'email_obfuscator',
         'email_obfuscator_settings_section'
@@ -57,7 +57,7 @@ function email_obfuscator_settings_init()
 
 function email_obfuscator_settings_section_callback()
 {
-    echo 'You can turn the Obfuscator on or off below. More features are coming soon!';
+    echo 'Welcome to the Email Obfuscation Plugin! This plugin provides a simple yet effective solution to protect your email addresses from spam bots by obfuscating them within your WordPress site\'s content. Here, you can easily manage how Email Obfuscator operates on your site by enabling or disabling its functionality according to your needs.';
 }
 
 function email_obfuscator_setting_enable_render()
@@ -73,6 +73,9 @@ function email_obfuscator_option_find_non_mailto_render()
 {
     $options = get_option('email_obfuscator_options');
 ?>
+    <p class="description">
+        Enable this option to automatically detect and obfuscate email addresses not already wrapped in &lt;a&gt; tags, transforming them into clickable, obfuscated mailto links. This feature enhances the protection of all visible email addresses on your site against spam bots.
+    </p>
     <input type='checkbox' name='email_obfuscator_options[option_find_non_mailto]' <?php checked(isset($options['option_find_non_mailto']), 1); ?> value='1'>
 <?php
 }
