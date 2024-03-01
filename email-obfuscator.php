@@ -50,13 +50,17 @@ function obfuscate_emails($content)
 
     // Additional logic to find and obfuscate unlinked emails if the setting is enabled
     if (!empty($options['option_find_non_mailto'])) {
-        $textNodes = $xpath->query('//text()');
+        // Update the XPath query to exclude text nodes that are descendants of <a> tags
+        $textNodes = $xpath->query('//text()[not(ancestor::a)]');
         foreach ($textNodes as $textNode) {
             if (preg_match_all('/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/', $textNode->nodeValue, $emails)) {
                 foreach ($emails[0] as $email) {
+                    // Generate the obfuscated email link
                     $obfuscatedEmailLink = generate_mailto_link($email);
-                    $newNode = $dom->createDocumentFragment();
+                    // Replace the plaintext email with the obfuscated link in the content
                     $replacementHtml = preg_replace('/' . preg_quote($email, '/') . '/', $obfuscatedEmailLink, $textNode->nodeValue);
+
+                    $newNode = $dom->createDocumentFragment();
                     $newNode->appendXML($replacementHtml);
                     $textNode->parentNode->replaceChild($newNode, $textNode);
                 }
