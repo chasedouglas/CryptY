@@ -40,3 +40,14 @@ We're continually working to improve the Email Obfuscator Plugin. Stay tuned for
 ## License
 
 This plugin is licensed under GPL2, allowing you to use and modify it freely as long as you maintain the same licensing for any derivative works.
+
+## Contributing
+
+We welcome contributions from the community! Here are some ways you can help:
+
+- Reporting bugs
+- Suggesting enhancements
+- Writing or improving documentation
+- Submitting pull requests to resolve open issues
+
+If you're interested in contributing, please read our [CONTRIBUTING.md](CONTRIBUTING.md) file for more information on how to get started.
