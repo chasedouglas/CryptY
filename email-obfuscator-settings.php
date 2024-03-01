@@ -48,7 +48,7 @@ function email_obfuscator_settings_init()
     // Add a new setting field for "option_find_non_mailto"
     add_settings_field(
         'option_find_non_mailto',
-        'Inlcude non-mailto links?',
+        'Include non-mailto links',
         'email_obfuscator_option_find_non_mailto_render',
         'email_obfuscator',
         'email_obfuscator_settings_section'
@@ -73,10 +73,10 @@ function email_obfuscator_option_find_non_mailto_render()
 {
     $options = get_option('email_obfuscator_options');
 ?>
-    <p class="description">
+    <input type='checkbox' name='email_obfuscator_options[option_find_non_mailto]' <?php checked(isset($options['option_find_non_mailto']), 1); ?> value='1'>
+    <p class="description" style="max-width: 600px;">
         Enable this option to automatically detect and obfuscate email addresses not already wrapped in &lt;a&gt; tags, transforming them into clickable, obfuscated mailto links. This feature enhances the protection of all visible email addresses on your site against spam bots.
     </p>
-    <input type='checkbox' name='email_obfuscator_options[option_find_non_mailto]' <?php checked(isset($options['option_find_non_mailto']), 1); ?> value='1'>
 <?php
 }
 
